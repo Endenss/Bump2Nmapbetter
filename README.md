@@ -1,4 +1,4 @@
-# 🖼️ Texture Converter Pro | Конвертер текстур для игр
+# 🖼️ Texture Converter Pro | Конвертер текстур для S.T.A.L.K.E.R
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-%233776AB?logo=python)](https://python.org)
 [![PyQt5](https://img.shields.io/badge/GUI-PyQt5-%2341CD52?logo=qt)](https://pypi.org/project/PyQt5/)
