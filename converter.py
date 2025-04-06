@@ -4,7 +4,7 @@ import imageio.v2 as imageio
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QFileDialog, QListWidget, QLineEdit,
                              QMessageBox, QProgressBar, QCheckBox, QGroupBox, QRadioButton,
-                             QFrame)
+                             QFrame, QTabWidget)
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt5.QtGui import QColor, QPalette, QFont, QIcon
 
@@ -74,37 +74,23 @@ class AnimatedButton(QPushButton):
         self._animation.start()
 
 
-class DDSConverterApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Конвертер DDS текстур")
-        self.setGeometry(100, 100, 900, 700)
-        self.setWindowIcon(QIcon("icon.png"))
-        
+class FileProcessingTab(QWidget):
+    def __init__(self, file_extension, parent=None):
+        super().__init__(parent)
+        self.file_extension = file_extension
         self._setup_ui()
-        self._setup_style()
-        self.show()
     
     def _setup_ui(self):
-        main_widget = QWidget()
-        self.setCentralWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
+        layout = QVBoxLayout(self)
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
-
-        # Заголовок
-        title = QLabel("Bump2Nmap but better")
-        title.setAlignment(Qt.AlignCenter)
-        title.setFont(QFont("Arial", 14, QFont.Bold))
-        title.setStyleSheet("color: #3498db; margin-bottom: 15px;")
-        layout.addWidget(title)
 
         # Режимы работы
         self.mode_group = QGroupBox("Режим работы:")
         mode_layout = QHBoxLayout()
         
-        self.mode_convert = QRadioButton("Конвертация каналов")
-        self.mode_alpha = QRadioButton("Извлечение альфа-канала")
+        self.mode_convert = QRadioButton("Конвертация bump в normal")
+        self.mode_alpha = QRadioButton("Извлечение roughness")
         self.mode_global = QRadioButton("Глобальная обработка")
         self.mode_global.setChecked(True)
         
@@ -118,7 +104,7 @@ class DDSConverterApp(QMainWindow):
         self._setup_folder_controls(layout)
         
         # Список файлов
-        self.file_list_label = QLabel("Найденные файлы:")
+        self.file_list_label = QLabel(f"Найденные файлы (.{self.file_extension}):")
         self.file_list = QListWidget()
         self.file_list.setSelectionMode(QListWidget.ExtendedSelection)
         layout.addWidget(self.file_list_label)
@@ -164,12 +150,11 @@ class DDSConverterApp(QMainWindow):
         # Настройки конвертации
         self.convert_options = QGroupBox("Настройки конвертации:")
         convert_layout = QVBoxLayout()
-        self.process_bump = QCheckBox("Обрабатывать только bump-карты")
+        self.process_bump = QCheckBox(f"Обрабатывать только *_bump.{self.file_extension}")
         self.process_bump.setChecked(True)
-        self.create_spec = QCheckBox("Создавать specular-карты")
+        self.create_spec = QCheckBox("Создавать specular карты")
         self.create_spec.setChecked(True)
-        self.convert_to_png = QCheckBox("Конвертировать в PNG")
-        self.convert_to_png.setChecked(True)
+        self.convert_to_png = QCheckBox("Конвертировать в PNG" if self.file_extension == "dds" else "Конвертировать в DDS")
         convert_layout.addWidget(self.process_bump)
         convert_layout.addWidget(self.create_spec)
         convert_layout.addWidget(self.convert_to_png)
@@ -177,14 +162,13 @@ class DDSConverterApp(QMainWindow):
         self.convert_options.setVisible(False)
         layout.addWidget(self.convert_options)
 
-        # Настройки альфа-канала
-        self.alpha_options = QGroupBox("Настройки альфа-канала:")
+        # Настройки roughness
+        self.alpha_options = QGroupBox("Настройки roughness:")
         alpha_layout = QVBoxLayout()
-        self.process_alpha = QCheckBox("Обрабатывать bump#.dds")
+        self.process_alpha = QCheckBox(f"Обрабатывать *bump#.{self.file_extension}")
         self.process_alpha.setChecked(True)
         self.delete_original = QCheckBox("Удалять исходные файлы")
-        self.alpha_convert_to_png = QCheckBox("Конвертировать в PNG")
-        self.alpha_convert_to_png.setChecked(True)
+        self.alpha_convert_to_png = QCheckBox("Конвертировать в PNG" if self.file_extension == "dds" else "Конвертировать в DDS")
         alpha_layout.addWidget(self.process_alpha)
         alpha_layout.addWidget(self.delete_original)
         alpha_layout.addWidget(self.alpha_convert_to_png)
@@ -195,11 +179,11 @@ class DDSConverterApp(QMainWindow):
         # Глобальные настройки
         self.global_options = QGroupBox("Глобальные настройки:")
         global_layout = QVBoxLayout()
-        self.convert_colormap = QCheckBox("Конвертировать colormap")
+        self.convert_colormap = QCheckBox(f"Конвертировать *_colormap.{self.file_extension}")
         self.convert_colormap.setChecked(True)
-        self.convert_bump = QCheckBox("Конвертировать bump")
+        self.convert_bump = QCheckBox(f"Конвертировать *_bump.{self.file_extension}")
         self.convert_bump.setChecked(True)
-        self.extract_roughness = QCheckBox("Извлекать roughness")
+        self.extract_roughness = QCheckBox(f"Извлекать roughness из *bump#.{self.file_extension}")
         self.extract_roughness.setChecked(True)
         self.keep_originals = QCheckBox("Сохранять оригиналы")
         self.keep_originals.setChecked(True)
@@ -226,10 +210,213 @@ class DDSConverterApp(QMainWindow):
         button_layout.addWidget(self.convert_button)
         layout.addLayout(button_layout)
     
+    def _toggle_mode(self):
+        self.convert_options.setVisible(self.mode_convert.isChecked())
+        self.alpha_options.setVisible(self.mode_alpha.isChecked())
+        self.global_options.setVisible(self.mode_global.isChecked())
+        self._refresh_file_list()
+    
+    def _select_source_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Выберите исходную папку")
+        if folder:
+            self.source_path.setText(folder)
+            self._refresh_file_list()
+    
+    def _select_output_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Выберите папку назначения")
+        if folder:
+            self.output_path.setText(folder)
+    
+    def _refresh_file_list(self):
+        self.file_list.clear()
+        source_folder = self.source_path.text()
+        
+        if not source_folder or not os.path.exists(source_folder):
+            return
+        
+        if self.mode_global.isChecked():
+            files = [f for f in os.listdir(source_folder) if f.lower().endswith(f'.{self.file_extension}')]
+        elif self.mode_convert.isChecked():
+            if self.process_bump.isChecked():
+                files = [f for f in os.listdir(source_folder) if f.lower().endswith(f"_bump.{self.file_extension}")]
+            else:
+                files = [f for f in os.listdir(source_folder) if f.lower().endswith(f".{self.file_extension}")]
+        else:
+            if self.process_alpha.isChecked():
+                files = [f for f in os.listdir(source_folder) if f.lower().endswith(f"bump#.{self.file_extension}")]
+            else:
+                files = [f for f in os.listdir(source_folder) if f.lower().endswith(f".{self.file_extension}")]
+        
+        self.file_list.addItems(sorted(files))
+    
+    def _get_output_extension(self, mode):
+        if mode == "convert" and not self.convert_to_png.isChecked():
+            return f".{self.file_extension}"
+        if mode == "alpha" and not self.alpha_convert_to_png.isChecked():
+            return f".{self.file_extension}"
+        return ".png" if self.file_extension == "dds" else ".dds"
+    
+    def convert_bump_to_normal(self, img):
+        """Конвертирует bump-карту в normal-карту"""
+        normal_map = np.zeros_like(img)
+        
+        # Сохраняем альфа-канал если есть
+        if img.shape[2] == 4:
+            normal_map[:,:,3] = img[:,:,3]
+        
+        # Основная информация в bump-картах обычно в зеленом канале
+        height_data = img[:,:,1].astype(np.float32) / 255.0
+        
+        # Создаем normal map (синий канал - основная информация)
+        normal_map[:,:,2] = (height_data * 255).astype(np.uint8)  # Синий канал
+        normal_map[:,:,0] = 128  # Красный канал - среднее значение
+        normal_map[:,:,1] = 128  # Зеленый канал - среднее значение
+        
+        return normal_map
+    
+    def _process_files(self):
+        source_folder = self.source_path.text()
+        output_folder = self.output_path.text() or source_folder
+        
+        if not source_folder or not os.path.exists(source_folder):
+            QMessageBox.warning(self, "Ошибка", "Укажите корректную исходную папку")
+            return
+        
+        selected_items = self.file_list.selectedItems()
+        files_to_process = [item.text() for item in selected_items] if selected_items else None
+        
+        if self.mode_global.isChecked() and not files_to_process:
+            reply = QMessageBox.question(self, "Подтверждение", 
+                                       "Обработать все файлы в папке?",
+                                       QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+            files_to_process = [f for f in os.listdir(source_folder) if f.lower().endswith(f'.{self.file_extension}')]
+        elif not files_to_process:
+            QMessageBox.warning(self, "Ошибка", "Выберите файлы для обработки")
+            return
+        
+        self.progress.setVisible(True)
+        self.progress.setMaximum(len(files_to_process))
+        
+        for i, file_name in enumerate(files_to_process):
+            self.progress.setValue(i + 1)
+            QApplication.processEvents()
+            
+            try:
+                input_path = os.path.join(source_folder, file_name)
+                base_name = os.path.splitext(file_name)[0]
+                
+                if self.mode_global.isChecked():
+                    img = imageio.imread(input_path)
+                    
+                    if "colormap" in file_name.lower() and self.convert_colormap.isChecked():
+                        output_path = os.path.join(output_folder, f"{base_name}.png")
+                        imageio.imsave(output_path, img)
+                        
+                    elif "bump#" in file_name.lower() and self.extract_roughness.isChecked():
+                        alpha_channel = img[:, :, 3] if img.shape[2] >= 4 else img[:, :, 0]
+                        output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}.png")
+                        imageio.imsave(output_path, alpha_channel)
+                        
+                    elif "bump" in file_name.lower() and self.convert_bump.isChecked():
+                        normal_map = self.convert_bump_to_normal(img)
+                        output_path = os.path.join(output_folder, f"{base_name.replace('_bump', '_nmap')}.png")
+                        imageio.imsave(output_path, normal_map)
+                    
+                    if not self.keep_originals.isChecked():
+                        os.remove(input_path)
+                        
+                elif self.mode_convert.isChecked():
+                    img = imageio.imread(input_path)
+                    normal_map = self.convert_bump_to_normal(img)
+                    
+                    ext = self._get_output_extension("convert")
+                    output_path = os.path.join(output_folder, f"{base_name.replace('_bump', '_nmap')}{ext}")
+                    imageio.imsave(output_path, normal_map)
+                    
+                    if self.create_spec.isChecked():
+                        specular = img[:, :, 0]
+                        spec_path = os.path.join(output_folder, f"{base_name}_spec{ext}")
+                        imageio.imsave(spec_path, specular)
+                        
+                else:
+                    img = imageio.imread(input_path)
+                    alpha_channel = img[:, :, 3] if img.shape[2] >= 4 else img[:, :, 0]
+                    
+                    ext = self._get_output_extension("alpha")
+                    output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}{ext}")
+                    imageio.imsave(output_path, alpha_channel)
+                    
+                    if self.delete_original.isChecked():
+                        os.remove(input_path)
+                        
+            except Exception as e:
+                QMessageBox.warning(self, "Ошибка", f"Ошибка обработки {file_name}:\n{str(e)}")
+                continue
+        
+        self.progress.setVisible(False)
+        QMessageBox.information(self, "Готово", "Обработка завершена!")
+
+
+class DDSConverterApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Конвертер текстур")
+        self.setGeometry(100, 100, 950, 750)
+        self.setWindowIcon(QIcon("icon.png"))
+        
+        self._setup_ui()
+        self._setup_style()
+        self.show()
+    
+    def _setup_ui(self):
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        layout = QVBoxLayout(main_widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Заголовок
+        title = QLabel("УНИВЕРСАЛЬНЫЙ КОНВЕРТЕР ТЕКСТУР")
+        title.setAlignment(Qt.AlignCenter)
+        title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setStyleSheet("color: #3498db; margin-bottom: 15px;")
+        layout.addWidget(title)
+
+        # Вкладки
+        self.tabs = QTabWidget()
+        
+        # Вкладка для DDS
+        self.dds_tab = FileProcessingTab("dds")
+        self.tabs.addTab(self.dds_tab, "Обработка DDS")
+        
+        # Вкладка для PNG
+        self.png_tab = FileProcessingTab("png")
+        self.tabs.addTab(self.png_tab, "Обработка PNG")
+        
+        layout.addWidget(self.tabs)
+    
     def _setup_style(self):
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #2c3e50;
+            }
+            QTabWidget::pane {
+                border: 1px solid #3498db;
+                border-radius: 3px;
+                margin-top: 5px;
+            }
+            QTabBar::tab {
+                background: #34495e;
+                color: #ecf0f1;
+                padding: 8px;
+                border-top-left-radius: 3px;
+                border-top-right-radius: 3px;
+            }
+            QTabBar::tab:selected {
+                background: #3498db;
+                color: white;
             }
             QGroupBox {
                 color: #ecf0f1;
@@ -269,142 +456,6 @@ class DDSConverterApp(QMainWindow):
                 spacing: 5px;
             }
         """)
-    
-    def _toggle_mode(self):
-        self.convert_options.setVisible(self.mode_convert.isChecked())
-        self.alpha_options.setVisible(self.mode_alpha.isChecked())
-        self.global_options.setVisible(self.mode_global.isChecked())
-        self._refresh_file_list()
-    
-    def _select_source_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Выберите исходную папку")
-        if folder:
-            self.source_path.setText(folder)
-            self._refresh_file_list()
-    
-    def _select_output_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Выберите папку назначения")
-        if folder:
-            self.output_path.setText(folder)
-    
-    def _refresh_file_list(self):
-        self.file_list.clear()
-        source_folder = self.source_path.text()
-        
-        if not source_folder or not os.path.exists(source_folder):
-            return
-        
-        if self.mode_global.isChecked():
-            files = [f for f in os.listdir(source_folder) if f.lower().endswith('.dds')]
-        elif self.mode_convert.isChecked():
-            if self.process_bump.isChecked():
-                files = [f for f in os.listdir(source_folder) if f.lower().endswith("bump.dds")]
-            else:
-                files = [f for f in os.listdir(source_folder) if f.lower().endswith(".dds")]
-        else:
-            if self.process_alpha.isChecked():
-                files = [f for f in os.listdir(source_folder) if f.lower().endswith("bump#.dds")]
-            else:
-                files = [f for f in os.listdir(source_folder) if f.lower().endswith(".dds")]
-        
-        self.file_list.addItems(sorted(files))
-    
-    def _get_output_extension(self, mode):
-        if mode == "convert" and not self.convert_to_png.isChecked():
-            return ".dds"
-        if mode == "alpha" and not self.alpha_convert_to_png.isChecked():
-            return ".dds"
-        return ".png"
-    
-    def _process_files(self):
-        source_folder = self.source_path.text()
-        output_folder = self.output_path.text() or source_folder
-        
-        if not source_folder or not os.path.exists(source_folder):
-            QMessageBox.warning(self, "Ошибка", "Укажите корректную исходную папку")
-            return
-        
-        selected_items = self.file_list.selectedItems()
-        files_to_process = [item.text() for item in selected_items] if selected_items else None
-        
-        if self.mode_global.isChecked() and not files_to_process:
-            reply = QMessageBox.question(self, "Подтверждение", 
-                                       "Обработать все файлы в папке?",
-                                       QMessageBox.Yes | QMessageBox.No)
-            if reply == QMessageBox.No:
-                return
-            files_to_process = [f for f in os.listdir(source_folder) if f.lower().endswith('.dds')]
-        elif not files_to_process:
-            QMessageBox.warning(self, "Ошибка", "Выберите файлы для обработки")
-            return
-        
-        self.progress.setVisible(True)
-        self.progress.setMaximum(len(files_to_process))
-        
-        for i, file_name in enumerate(files_to_process):
-            self.progress.setValue(i + 1)
-            QApplication.processEvents()
-            
-            try:
-                input_path = os.path.join(source_folder, file_name)
-                base_name = os.path.splitext(file_name)[0]
-                
-                if self.mode_global.isChecked():
-                    img = imageio.imread(input_path)
-                    
-                    if "colormap" in file_name.lower() and self.convert_colormap.isChecked():
-                        output_path = os.path.join(output_folder, f"{base_name}.png")
-                        imageio.imsave(output_path, img)
-                        
-                    elif "bump#" in file_name.lower() and self.extract_roughness.isChecked():
-                        alpha_channel = img[:, :, 3]
-                        output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}.png")
-                        imageio.imsave(output_path, alpha_channel)
-                        
-                    elif "bump" in file_name.lower() and self.convert_bump.isChecked():
-                        new_img = np.empty(img.shape, dtype=np.uint8)
-                        new_img[:,:,0] = img[:,:,3]
-                        new_img[:,:,1] = img[:,:,2]
-                        new_img[:,:,2] = img[:,:,1]
-                        output_path = os.path.join(output_folder, f"{base_name}.png")
-                        imageio.imsave(output_path, new_img)
-                    
-                    if not self.keep_originals.isChecked():
-                        os.remove(input_path)
-                        
-                elif self.mode_convert.isChecked():
-                    img = imageio.imread(input_path)
-                    new_img = np.empty(img.shape, dtype=np.uint8)
-                    new_img[:,:,0] = img[:,:,3]
-                    new_img[:,:,1] = img[:,:,2]
-                    new_img[:,:,2] = img[:,:,1]
-                    
-                    ext = self._get_output_extension("convert")
-                    output_path = os.path.join(output_folder, f"{base_name}{ext}")
-                    imageio.imsave(output_path, new_img)
-                    
-                    if self.create_spec.isChecked():
-                        red_channel = img[:, :, 0]
-                        spec_path = os.path.join(output_folder, f"{base_name}_spec{ext}")
-                        imageio.imsave(spec_path, red_channel)
-                        
-                else:
-                    img = imageio.imread(input_path)
-                    alpha_channel = img[:, :, 3]
-                    
-                    ext = self._get_output_extension("alpha")
-                    output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}{ext}")
-                    imageio.imsave(output_path, alpha_channel)
-                    
-                    if self.delete_original.isChecked():
-                        os.remove(input_path)
-                        
-            except Exception as e:
-                QMessageBox.warning(self, "Ошибка", f"Ошибка обработки {file_name}:\n{str(e)}")
-                continue
-        
-        self.progress.setVisible(False)
-        QMessageBox.information(self, "Готово", "Обработка завершена!")
 
 
 if __name__ == "__main__":
