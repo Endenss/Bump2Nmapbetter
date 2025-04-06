@@ -1,82 +1,108 @@
-# 🔍 NmapScan Pro | Automated Nmap Scanner
+# 🖼️ Texture Converter Pro | Конвертер текстур для игр
 
-[![Python 3.x](https://img.shields.io/badge/Python-3.x-%233776AB?logo=python)](https://python.org)
-[![Nmap Required](https://img.shields.io/badge/Nmap-Required-%23FF6600?logo=gnu)](https://nmap.org)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-%233776AB?logo=python)](https://python.org)
+[![PyQt5](https://img.shields.io/badge/GUI-PyQt5-%2341CD52?logo=qt)](https://pypi.org/project/PyQt5/)
 [![License MIT](https://img.shields.io/badge/License-MIT-%23green)](LICENSE)
 [![Version 1.0](https://img.shields.io/badge/Version-1.0-%23blueviolet)](CHANGELOG.md)
 
-**Automate your network scanning** with this powerful Nmap wrapper that simplifies complex scans into single commands.
+**Профессиональный инструмент** для конвертации и обработки игровых текстур (DDS/PNG) с удобным графическим интерфейсом.
 
 ---
 
-## 🚀 Features
+## 🌟 Основные возможности
 
-| Feature | Description |
-|---------|-------------|
-| ⚡ **One-Click Scans** | Predefined profiles for quick/full/udp scans |
-| 🎯 **Smart Targeting** | Supports IPs, ranges, and hostnames |
-| 📂 **Organized Output** | Auto-saves in multiple formats (XML/JSON/TXT) |
-| ⏱ **Time-Saving** | Parallel scanning for multiple targets |
-| 🔐 **Security Focused** | Clean output sanitization |
+### 🔄 Конвертация форматов
+- DDS ↔ PNG взаимное преобразование
+- Пакетная обработка файлов
+- Сохранение альфа-канала
+
+### 🛠️ Специализированные функции
+| Функция | Описание |
+|---------|----------|
+| **Bump → Normal** | Генерация normal-карт из bump-текстур |
+| **Извлечение Roughness** | Автоматическое получение карт шероховатости |
+| **Создание Specular** | Генерация specular-карт |
+| **Пакетная обработка** | Массовая конвертация по шаблонам |
+
+### 🖥️ Интерфейс
+- Темная тема с анимированными элементами
+- Вкладки для разных форматов (DDS/PNG)
+- Гибкие настройки конвертации
+- Визуализация прогресса
 
 ---
 
-## 🛠 Installation
+## 📦 Установка
 
+1. Убедитесь, что установлен [Python 3.10+](https://python.org)
+2. Установите зависимости:
 ```bash
-# Clone repository
-git clone https://github.com/Endenss/NmapScan-Pro.git && cd NmapScan-Pro
+pip install PyQt5 numpy imageio
+Скачайте последнюю версию программы
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Verify Nmap is installed
-nmap --version
-🖥 Usage Examples
-Basic Scan
+🚀 Использование
 bash
 Copy
-python nmapscan.py 192.168.1.1 --quick
-Full Network Audit
-bash
+python texture_converter.py
+Примеры работы:
+Массовая конвертация DDS → PNG
+
+Выберите режим "Глобальная обработка"
+
+Укажите папку с текстурами
+
+Нажмите "Конвертировать"
+
+Создание normal-карты
+
+Включите режим "Конвертация bump в normal"
+
+Выберите файлы *_bump.dds
+
+Укажите выходную папку
+
+Извлечение roughness
+
+Активируйте режим "Извлечение roughness"
+
+Выберите файлы *bump#.png
+
+Настройте параметры сохранения
+
+📂 Поддерживаемые форматы
+Тип	Входные форматы	Выходные форматы
+Текстуры	.dds, .png	.dds, .png
+Bump-карты	*_bump.*	*_nmap.*
+Roughness	*bump#.*	*roughness.*
+🛠 Технические детали
+Алгоритм преобразований
+python
 Copy
-python nmapscan.py 10.0.0.0/24 --full --output network_audit
-Custom Scan
-bash
+def convert_bump_to_normal(img):
+    height_data = img[:,:,1].astype(np.float32) / 255.0
+    normal_map = np.zeros_like(img)
+    normal_map[:,:,2] = (height_data * 255).astype(np.uint8)  # Синий канал
+    normal_map[:,:,0] = 128  # Красный (нейтральный)
+    normal_map[:,:,1] = 128  # Зеленый (нейтральный)
+    return normal_map
+Структура проекта
 Copy
-python nmapscan.py example.com -c "-sS -T4 --top-ports 100"
-📂 Output Structure
-text
-Copy
-results/
-├── scans/
-│   ├── 2023-11-20_14-30_192.168.1.1_quick.nmap
-│   ├── 2023-11-20_14-30_192.168.1.1_quick.json
-│   └── 2023-11-20_14-30_192.168.1.1_quick.xml
-└── logs/
-    └── scan_history.log
-⚙️ Configuration
-Edit config/profiles.json to customize scan profiles:
+texture_converter/
+├── icons/          # Графические ресурсы
+├── presets/        # Шаблоны настроек
+└── texture_converter.py  # Основной код
+📜 Лицензия
+MIT License © 2023 [Ваше имя/компания]
 
-json
-Copy
-{
-  "quick": "-T4 -F --max-retries 1",
-  "full": "-A -T4 -v -Pn -p-",
-  "udp": "-sU -T4 --top-ports 50"
-}
-📜 License
-MIT License © 2023 Endenss
+🤝 Участие в разработке
+Форкните репозиторий
 
-💡 Contributing
-Fork the project
+Создайте ветку для новой фичи (git checkout -b feature/AmazingFeature)
 
-Create your feature branch (git checkout -b feature/AmazingFeature)
+Сделайте коммит (git commit -m 'Add amazing feature')
 
-Commit changes (git commit -m 'Add amazing feature')
+Запушьте изменения (git push origin feature/AmazingFeature)
 
-Push to branch (git push origin feature/AmazingFeature)
-
-Open Pull Request
+Откройте Pull Request
 
 Open in GitHub
