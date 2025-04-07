@@ -257,22 +257,20 @@ class FileProcessingTab(QWidget):
         return ".png" if self.file_extension == "dds" else ".dds"
     
     def convert_bump_to_normal(self, img):
-        """Конвертирует bump-карту в normal-карту"""
-        normal_map = np.zeros_like(img)
+        """Конвертирует bump-карту в normal-карту с правильным распределением каналов"""
+        new_img = np.zeros_like(img)
         
-        # Сохраняем альфа-канал если есть
+        # Если изображение RGBA
         if img.shape[2] == 4:
-            normal_map[:,:,3] = img[:,:,3]
+            new_img[:,:,0] = img[:,:,3]  # Альфа -> Красный
+            new_img[:,:,3] = 255         # Устанавливаем полную непрозрачность
+        else:
+            new_img[:,:,0] = 128         # Красный канал по умолчанию
         
-        # Основная информация в bump-картах обычно в зеленом канале
-        height_data = img[:,:,1].astype(np.float32) / 255.0
+        new_img[:,:,1] = img[:,:,2]  # Синий -> Зеленый
+        new_img[:,:,2] = img[:,:,1]  # Зеленый -> Синий
         
-        # Создаем normal map (синий канал - основная информация)
-        normal_map[:,:,2] = (height_data * 255).astype(np.uint8)  # Синий канал
-        normal_map[:,:,0] = 128  # Красный канал - среднее значение
-        normal_map[:,:,1] = 128  # Зеленый канал - среднее значение
-        
-        return normal_map
+        return new_img
     
     def _process_files(self):
         source_folder = self.source_path.text()
