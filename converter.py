@@ -1,41 +1,169 @@
 import os
 import numpy as np
 import imageio.v2 as imageio
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QFileDialog, QListWidget, QLineEdit,
                              QMessageBox, QProgressBar, QCheckBox, QGroupBox, QRadioButton,
                              QFrame, QTabWidget)
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
-from PyQt5.QtGui import QColor, QPalette, QFont, QIcon
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, QUrl, QSize
+from PyQt6.QtGui import QColor, QPalette, QFont, QIcon, QPixmap, QDesktopServices
+
+
+class StalkerStyle:
+    @staticmethod
+    def get_dark_palette():
+        palette = QPalette()
+        palette.setColor(QPalette.ColorRole.Window, QColor(30, 30, 30))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor(200, 200, 200))
+        palette.setColor(QPalette.ColorRole.Base, QColor(40, 40, 40))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(50, 50, 50))
+        palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(60, 60, 60))
+        palette.setColor(QPalette.ColorRole.ToolTipText, QColor(200, 200, 200))
+        palette.setColor(QPalette.ColorRole.Text, QColor(200, 200, 200))
+        palette.setColor(QPalette.ColorRole.Button, QColor(70, 70, 70))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(200, 200, 200))
+        palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.white)
+        palette.setColor(QPalette.ColorRole.Highlight, QColor(100, 120, 50))
+        palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.white)
+        return palette
+
+    @staticmethod
+    def get_stylesheet():
+        return """
+            QMainWindow {
+                background-color: #1e1e1e;
+                border: 1px solid #3a3a3a;
+            }
+            QTabWidget::pane {
+                border: 1px solid #3a3a3a;
+                border-radius: 2px;
+                margin-top: 5px;
+                background: #262626;
+            }
+            QTabBar::tab {
+                background: #262626;
+                color: #c8c8c8;
+                padding: 8px;
+                border: 1px solid #3a3a3a;
+                border-bottom: none;
+                border-top-left-radius: 3px;
+                border-top-right-radius: 3px;
+                min-width: 100px;
+            }
+            QTabBar::tab:selected {
+                background: #323232;
+                color: #e0e0e0;
+                border-color: #646464;
+            }
+            QTabBar::tab:hover {
+                background: #323232;
+            }
+            QGroupBox {
+                color: #a0a0a0;
+                font-weight: bold;
+                border: 1px solid #3a3a3a;
+                border-radius: 3px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background: #262626;
+            }
+            QLabel {
+                color: #c8c8c8;
+            }
+            QLineEdit {
+                background-color: #2a2a2a;
+                color: #c8c8c8;
+                border: 1px solid #3a3a3a;
+                border-radius: 2px;
+                padding: 5px;
+                selection-background-color: #646464;
+            }
+            QListWidget {
+                background-color: #2a2a2a;
+                color: #c8c8c8;
+                border: 1px solid #3a3a3a;
+                border-radius: 2px;
+                selection-background-color: #646464;
+            }
+            QProgressBar {
+                border: 1px solid #3a3a3a;
+                border-radius: 2px;
+                text-align: center;
+                color: #c8c8c8;
+                background: #2a2a2a;
+            }
+            QProgressBar::chunk {
+                background-color: #647833;
+            }
+            QCheckBox, QRadioButton {
+                color: #c8c8c8;
+                spacing: 5px;
+            }
+            QCheckBox::indicator, QRadioButton::indicator {
+                width: 16px;
+                height: 16px;
+                border: 1px solid #3a3a3a;
+                background: #2a2a2a;
+            }
+            QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+                background: #647833;
+                border: 1px solid #7a8c43;
+            }
+            QPushButton {
+                background-color: #3a3a3a;
+                color: #c8c8c8;
+                border: 1px solid #4a4a4a;
+                border-radius: 2px;
+                padding: 5px 10px;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #4a4a4a;
+                border-color: #5a5a5a;
+            }
+            QPushButton:pressed {
+                background-color: #2a2a2a;
+            }
+            QPushButton:disabled {
+                background-color: #2a2a2a;
+                color: #6a6a6a;
+            }
+            #githubButton {
+                border: none;
+                background: transparent;
+            }
+            #githubButton:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+        """
 
 
 class AnimatedButton(QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
-        self._color = QColor("#3498db")
-        self._default_color = QColor("#3498db")
-        self._hover_color = QColor("#2980b9")
-        self._pressed_color = QColor("#1a5276")
-        
-        self.setCursor(Qt.PointingHandCursor)
+        self._color = QColor("#3a3a3a")
+        self._default_color = QColor("#3a3a3a")
+        self._hover_color = QColor("#4a4a4a")
+        self._pressed_color = QColor("#2a2a2a")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._update_style()
-        
         self._animation = QPropertyAnimation(self, b"color")
-        self._animation.setDuration(300)
+        self._animation.setDuration(200)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutQuad)
     
     def _update_style(self):
         self.setStyleSheet(f"""
             QPushButton {{
                 background-color: {self._color.name()};
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 16px;
-                font-weight: bold;
-                min-width: 100px;
+                color: #c8c8c8;
+                border: 1px solid #4a4a4a;
+                border-radius: 2px;
+                padding: 5px 10px;
+                min-width: 80px;
             }}
             QPushButton:hover {{
                 background-color: {self._hover_color.name()};
+                border-color: #5a5a5a;
             }}
             QPushButton:pressed {{
                 background-color: {self._pressed_color.name()};
@@ -67,7 +195,7 @@ class AnimatedButton(QPushButton):
         self._animate_color(self._hover_color if self.underMouse() else self._default_color)
         super().mouseReleaseEvent(event)
 
-    def _animate_color(self, target_color, duration=300):
+    def _animate_color(self, target_color, duration=200):
         self._animation.stop()
         self._animation.setDuration(duration)
         self._animation.setEndValue(target_color)
@@ -82,47 +210,32 @@ class FileProcessingTab(QWidget):
     
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
-
-        # Режимы работы
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
         self.mode_group = QGroupBox("Режим работы:")
         mode_layout = QHBoxLayout()
-        
         self.mode_convert = QRadioButton("Конвертация bump в normal")
         self.mode_alpha = QRadioButton("Извлечение roughness")
         self.mode_global = QRadioButton("Глобальная обработка")
         self.mode_global.setChecked(True)
-        
         mode_layout.addWidget(self.mode_convert)
         mode_layout.addWidget(self.mode_alpha)
         mode_layout.addWidget(self.mode_global)
         self.mode_group.setLayout(mode_layout)
         layout.addWidget(self.mode_group)
-
-        # Папки
         self._setup_folder_controls(layout)
-        
-        # Список файлов
         self.file_list_label = QLabel(f"Найденные файлы (.{self.file_extension}):")
         self.file_list = QListWidget()
-        self.file_list.setSelectionMode(QListWidget.ExtendedSelection)
+        self.file_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         layout.addWidget(self.file_list_label)
         layout.addWidget(self.file_list)
-
-        # Настройки
         self._setup_options(layout)
-
-        # Кнопки
         self._setup_buttons(layout)
-
-        # Связывание событий
         self.mode_convert.toggled.connect(self._toggle_mode)
         self.mode_alpha.toggled.connect(self._toggle_mode)
         self.mode_global.toggled.connect(self._toggle_mode)
     
     def _setup_folder_controls(self, layout):
-        # Исходная папка
         source_layout = QHBoxLayout()
         self.source_label = QLabel("Исходная папка:")
         self.source_path = QLineEdit()
@@ -133,8 +246,6 @@ class FileProcessingTab(QWidget):
         source_layout.addWidget(self.source_path)
         source_layout.addWidget(self.browse_source)
         layout.addLayout(source_layout)
-
-        # Папка назначения
         output_layout = QHBoxLayout()
         self.output_label = QLabel("Папка назначения:")
         self.output_path = QLineEdit()
@@ -147,7 +258,6 @@ class FileProcessingTab(QWidget):
         layout.addLayout(output_layout)
     
     def _setup_options(self, layout):
-        # Настройки конвертации
         self.convert_options = QGroupBox("Настройки конвертации:")
         convert_layout = QVBoxLayout()
         self.process_bump = QCheckBox(f"Обрабатывать только *_bump.{self.file_extension}")
@@ -161,8 +271,6 @@ class FileProcessingTab(QWidget):
         self.convert_options.setLayout(convert_layout)
         self.convert_options.setVisible(False)
         layout.addWidget(self.convert_options)
-
-        # Настройки roughness
         self.alpha_options = QGroupBox("Настройки roughness:")
         alpha_layout = QVBoxLayout()
         self.process_alpha = QCheckBox(f"Обрабатывать *bump#.{self.file_extension}")
@@ -175,8 +283,6 @@ class FileProcessingTab(QWidget):
         self.alpha_options.setLayout(alpha_layout)
         self.alpha_options.setVisible(False)
         layout.addWidget(self.alpha_options)
-
-        # Глобальные настройки
         self.global_options = QGroupBox("Глобальные настройки:")
         global_layout = QVBoxLayout()
         self.convert_colormap = QCheckBox(f"Конвертировать *_colormap.{self.file_extension}")
@@ -195,13 +301,12 @@ class FileProcessingTab(QWidget):
         layout.addWidget(self.global_options)
     
     def _setup_buttons(self, layout):
-        # Прогресс-бар
         self.progress = QProgressBar()
         self.progress.setVisible(False)
+        self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
-
-        # Кнопки действий
         button_layout = QHBoxLayout()
+        button_layout.addStretch()
         self.refresh_button = AnimatedButton("Обновить список")
         self.refresh_button.clicked.connect(self._refresh_file_list)
         self.convert_button = AnimatedButton("Конвертировать")
@@ -230,10 +335,8 @@ class FileProcessingTab(QWidget):
     def _refresh_file_list(self):
         self.file_list.clear()
         source_folder = self.source_path.text()
-        
         if not source_folder or not os.path.exists(source_folder):
             return
-        
         if self.mode_global.isChecked():
             files = [f for f in os.listdir(source_folder) if f.lower().endswith(f'.{self.file_extension}')]
         elif self.mode_convert.isChecked():
@@ -246,7 +349,6 @@ class FileProcessingTab(QWidget):
                 files = [f for f in os.listdir(source_folder) if f.lower().endswith(f"bump#.{self.file_extension}")]
             else:
                 files = [f for f in os.listdir(source_folder) if f.lower().endswith(f".{self.file_extension}")]
-        
         self.file_list.addItems(sorted(files))
     
     def _get_output_extension(self, mode):
@@ -257,113 +359,89 @@ class FileProcessingTab(QWidget):
         return ".png" if self.file_extension == "dds" else ".dds"
     
     def convert_bump_to_normal(self, img):
-        """Конвертирует bump-карту в normal-карту с правильным распределением каналов"""
         new_img = np.zeros_like(img)
-        
-        # Если изображение RGBA
         if img.shape[2] == 4:
-            new_img[:,:,0] = img[:,:,3]  # Альфа -> Красный
-            new_img[:,:,3] = 255         # Устанавливаем полную непрозрачность
+            new_img[:,:,0] = img[:,:,3]
+            new_img[:,:,3] = 255
         else:
-            new_img[:,:,0] = 128         # Красный канал по умолчанию
-        
-        new_img[:,:,1] = img[:,:,2]  # Синий -> Зеленый
-        new_img[:,:,2] = img[:,:,1]  # Зеленый -> Синий
-        
+            new_img[:,:,0] = 128
+        new_img[:,:,1] = img[:,:,2]
+        new_img[:,:,2] = img[:,:,1]
         return new_img
     
     def _process_files(self):
         source_folder = self.source_path.text()
         output_folder = self.output_path.text() or source_folder
-        
         if not source_folder or not os.path.exists(source_folder):
             QMessageBox.warning(self, "Ошибка", "Укажите корректную исходную папку")
             return
-        
         selected_items = self.file_list.selectedItems()
         files_to_process = [item.text() for item in selected_items] if selected_items else None
-        
         if self.mode_global.isChecked() and not files_to_process:
             reply = QMessageBox.question(self, "Подтверждение", 
                                        "Обработать все файлы в папке?",
-                                       QMessageBox.Yes | QMessageBox.No)
-            if reply == QMessageBox.No:
+                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.No:
                 return
             files_to_process = [f for f in os.listdir(source_folder) if f.lower().endswith(f'.{self.file_extension}')]
         elif not files_to_process:
             QMessageBox.warning(self, "Ошибка", "Выберите файлы для обработки")
             return
-        
         self.progress.setVisible(True)
         self.progress.setMaximum(len(files_to_process))
-        
         for i, file_name in enumerate(files_to_process):
             self.progress.setValue(i + 1)
             QApplication.processEvents()
-            
             try:
                 input_path = os.path.join(source_folder, file_name)
                 base_name = os.path.splitext(file_name)[0]
-                
                 if self.mode_global.isChecked():
                     img = imageio.imread(input_path)
-                    
                     if "colormap" in file_name.lower() and self.convert_colormap.isChecked():
                         output_path = os.path.join(output_folder, f"{base_name}.png")
                         imageio.imsave(output_path, img)
-                        
                     elif "bump#" in file_name.lower() and self.extract_roughness.isChecked():
                         alpha_channel = img[:, :, 3] if img.shape[2] >= 4 else img[:, :, 0]
                         output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}.png")
                         imageio.imsave(output_path, alpha_channel)
-                        
                     elif "bump" in file_name.lower() and self.convert_bump.isChecked():
                         normal_map = self.convert_bump_to_normal(img)
                         output_path = os.path.join(output_folder, f"{base_name.replace('_bump', '_nmap')}.png")
                         imageio.imsave(output_path, normal_map)
-                    
                     if not self.keep_originals.isChecked():
                         os.remove(input_path)
-                        
                 elif self.mode_convert.isChecked():
                     img = imageio.imread(input_path)
                     normal_map = self.convert_bump_to_normal(img)
-                    
                     ext = self._get_output_extension("convert")
                     output_path = os.path.join(output_folder, f"{base_name.replace('_bump', '_nmap')}{ext}")
                     imageio.imsave(output_path, normal_map)
-                    
                     if self.create_spec.isChecked():
                         specular = img[:, :, 0]
                         spec_path = os.path.join(output_folder, f"{base_name}_spec{ext}")
                         imageio.imsave(spec_path, specular)
-                        
                 else:
                     img = imageio.imread(input_path)
                     alpha_channel = img[:, :, 3] if img.shape[2] >= 4 else img[:, :, 0]
-                    
                     ext = self._get_output_extension("alpha")
                     output_path = os.path.join(output_folder, f"{base_name.replace('bump#', 'roughness')}{ext}")
                     imageio.imsave(output_path, alpha_channel)
-                    
                     if self.delete_original.isChecked():
                         os.remove(input_path)
-                        
             except Exception as e:
                 QMessageBox.warning(self, "Ошибка", f"Ошибка обработки {file_name}:\n{str(e)}")
                 continue
-        
         self.progress.setVisible(False)
         QMessageBox.information(self, "Готово", "Обработка завершена!")
 
 
-class DDSConverterApp(QMainWindow):
+class StalkerConverterApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Конвертер текстур")
-        self.setGeometry(100, 100, 950, 750)
-        self.setWindowIcon(QIcon("icon.png"))
-        
+        self.setWindowTitle("S.T.A.L.K.E.R. Texture Converter")
+        self.setGeometry(100, 100, 900, 700)
+        if os.path.exists("stalker_icon.png"):
+            self.setWindowIcon(QIcon("stalker_icon.png"))
         self._setup_ui()
         self._setup_style()
         self.show()
@@ -372,108 +450,63 @@ class DDSConverterApp(QMainWindow):
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
-        layout.setSpacing(15)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
 
-        # Заголовок
-        title = QLabel("УНИВЕРСАЛЬНЫЙ КОНВЕРТЕР ТЕКСТУР")
-        title.setAlignment(Qt.AlignCenter)
-        title.setFont(QFont("Arial", 14, QFont.Bold))
-        title.setStyleSheet("color: #3498db; margin-bottom: 15px;")
-        layout.addWidget(title)
+        header = QHBoxLayout()
+        
+        if os.path.exists("stalker_logo.png"):
+            logo = QLabel()
+            logo.setPixmap(QPixmap("stalker_logo.png").scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio))
+            header.addWidget(logo)
+        else:
+            header.addStretch()
+        
+        title = QLabel("S.T.A.L.K.E.R. TEXTURE CONVERTER")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title.setStyleSheet("color: #647833; margin-bottom: 10px;")
+        header.addWidget(title)
+        
+        if not os.path.exists("stalker_logo.png"):
+            header.addStretch()
 
-        # Вкладки
+        self.github_btn = QPushButton()
+        if os.path.exists("github_icon.png"):
+            icon = QIcon("github_icon.png")
+            self.github_btn.setIcon(icon)
+            self.github_btn.setIconSize(QSize(32, 32))
+        else:
+            self.github_btn.setText("GitHub")
+        self.github_btn.setObjectName("githubButton")
+        self.github_btn.setToolTip("Открыть репозиторий на GitHub")
+        self.github_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/Endenss/TextureConverterPro-TCP")))
+        header.addWidget(self.github_btn)
+        
+        layout.addLayout(header)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("color: #3a3a3a;")
+        layout.addWidget(separator)
+
         self.tabs = QTabWidget()
-        
-        # Вкладка для DDS
         self.dds_tab = FileProcessingTab("dds")
-        self.tabs.addTab(self.dds_tab, "Обработка DDS")
-        
-        # Вкладка для PNG
+        self.tabs.addTab(self.dds_tab, "DDS Processing")
         self.png_tab = FileProcessingTab("png")
-        self.tabs.addTab(self.png_tab, "Обработка PNG")
-        
+        self.tabs.addTab(self.png_tab, "PNG Processing")
         layout.addWidget(self.tabs)
     
     def _setup_style(self):
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #2c3e50;
-            }
-            QTabWidget::pane {
-                border: 1px solid #3498db;
-                border-radius: 3px;
-                margin-top: 5px;
-            }
-            QTabBar::tab {
-                background: #34495e;
-                color: #ecf0f1;
-                padding: 8px;
-                border-top-left-radius: 3px;
-                border-top-right-radius: 3px;
-            }
-            QTabBar::tab:selected {
-                background: #3498db;
-                color: white;
-            }
-            QGroupBox {
-                color: #ecf0f1;
-                font-weight: bold;
-                border: 2px solid #3498db;
-                border-radius: 5px;
-                margin-top: 10px;
-                padding-top: 15px;
-            }
-            QLabel {
-                color: #ecf0f1;
-            }
-            QLineEdit {
-                background-color: #34495e;
-                color: #ecf0f1;
-                border: 1px solid #3498db;
-                border-radius: 3px;
-                padding: 5px;
-            }
-            QListWidget {
-                background-color: #34495e;
-                color: #ecf0f1;
-                border: 1px solid #3498db;
-                border-radius: 3px;
-            }
-            QProgressBar {
-                border: 1px solid #3498db;
-                border-radius: 3px;
-                text-align: center;
-                color: white;
-            }
-            QProgressBar::chunk {
-                background-color: #3498db;
-            }
-            QCheckBox, QRadioButton {
-                color: #ecf0f1;
-                spacing: 5px;
-            }
-        """)
+        app.setPalette(StalkerStyle.get_dark_palette())
+        self.setStyleSheet(StalkerStyle.get_stylesheet())
 
 
 if __name__ == "__main__":
-    app = QApplication([])
-    
-    # Настройка палитры для темной темы
-    palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(44, 62, 80))
-    palette.setColor(QPalette.WindowText, QColor(236, 240, 241))
-    palette.setColor(QPalette.Base, QColor(52, 73, 94))
-    palette.setColor(QPalette.AlternateBase, QColor(44, 62, 80))
-    palette.setColor(QPalette.ToolTipBase, QColor(236, 240, 241))
-    palette.setColor(QPalette.ToolTipText, QColor(236, 240, 241))
-    palette.setColor(QPalette.Text, QColor(236, 240, 241))
-    palette.setColor(QPalette.Button, QColor(52, 152, 219))
-    palette.setColor(QPalette.ButtonText, QColor(236, 240, 241))
-    palette.setColor(QPalette.BrightText, Qt.white)
-    palette.setColor(QPalette.Highlight, QColor(41, 128, 185))
-    palette.setColor(QPalette.HighlightedText, Qt.white)
-    app.setPalette(palette)
-    
-    window = DDSConverterApp()
-    app.exec_()
+    import sys
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    window = StalkerConverterApp()
+    sys.exit(app.exec())
